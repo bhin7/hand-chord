@@ -8,18 +8,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
 <style>
-/* Layout: 카메라 스테이지(왼쪽, 큰 코드 이름 오버레이) + 지판 패널(오른쪽: 다이어그램, 손가락 상태, 코드표). 폰에선 세로로 쌓임 */
+/* Layout: 가이드(왼쪽) · 카메라 스테이지(가운데, 손 옆 코드 태그 + 파형) · 컨트롤(오른쪽). 좁으면 세로로 쌓임 */
 :root {
   --bg: #eceeea;
   --surface: #f8f9f6;
   --fg: #1b1f1c;
   --muted: #5d665f;
   --line: #cfd4cc;
-  --accent: #a8641f;      /* 브라스/로즈우드 */
+  --accent: #a8641f;
   --accent-fg: #ffffff;
   --live: #2f7d4f;
-  --danger: #b23a2b;
-  --stage: #141715;
+  --stage: #0d100f;
+  --wave: #6fe3ff;
+  --tag: #ffd36b;
   --font-display: "Bricolage Grotesque", "IBM Plex Sans KR", system-ui, sans-serif;
   --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
@@ -28,13 +29,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #111412; --surface: #1a1e1b; --fg: #e8ece7; --muted: #9aa49c; --line: #2d332f;
-    --accent: #e3a254; --accent-fg: #1a1208; --live: #5fc488; --danger: #ef7a68; --stage: #090b0a;
+    --accent: #e3a254; --accent-fg: #1a1208; --live: #5fc488; --stage: #070908;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111412; --surface: #1a1e1b; --fg: #e8ece7; --muted: #9aa49c; --line: #2d332f;
-  --accent: #e3a254; --accent-fg: #1a1208; --live: #5fc488; --danger: #ef7a68; --stage: #090b0a;
+  --accent: #e3a254; --accent-fg: #1a1208; --live: #5fc488; --stage: #070908;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -46,89 +47,87 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 32px;
 }
-.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
+.wrap { max-width: 1320px; margin: 0 auto; display: grid; gap: 18px; }
 header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
-h1 { font: 800 clamp(28px, 4vw, 40px)/1 var(--font-display); letter-spacing: -0.02em; margin: 0; text-wrap: balance; }
+h1 { font: 800 clamp(28px, 4vw, 40px)/1 var(--font-display); letter-spacing: -0.02em; margin: 0; }
 h1 span { color: var(--accent); }
-.tagline { margin: 0; color: var(--muted); max-width: 60ch; }
+.tagline { margin: 0; color: var(--muted); max-width: 62ch; }
 
-main { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr); gap: 18px; align-items: start; }
-@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+main { display: grid; grid-template-columns: 250px minmax(0, 1fr) 290px; gap: 18px; align-items: start; }
+@media (max-width: 1100px) { main { grid-template-columns: minmax(0, 1fr) 290px; } .guide { grid-column: 1 / -1; order: 3; } }
+@media (max-width: 760px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.eyebrow { font: 600 12px var(--font-body); letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
+
+/* Guide */
+.guide h2 { font: 800 20px/1.1 var(--font-display); margin: 0 0 12px; }
+.guide h3 { font: 600 14px var(--font-body); margin: 14px 0 6px; }
+.guide ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.guide .hand { display: inline-block; font: 500 11px var(--font-mono); padding: 1px 7px; border-radius: 99px; background: var(--accent); color: var(--accent-fg); margin-right: 6px; vertical-align: 1px; }
+.guide .hand.r { background: var(--live); color: var(--surface); }
 
 /* Stage */
-.stage {
-  position: relative; background: var(--stage); border-radius: 14px; overflow: hidden;
-  aspect-ratio: 4 / 3; max-width: 100%;
+.stage { position: relative; background: var(--stage); border-radius: 14px; overflow: hidden; aspect-ratio: 4 / 3; max-width: 100%; }
+.stage video, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.stage video { filter: saturate(.9) brightness(.85); }
+.tag {
+  position: absolute; transform: translate(-50%, -100%); pointer-events: none;
+  font: 800 clamp(26px, 4vw, 44px)/1 var(--font-display); color: var(--tag);
+  text-shadow: 0 0 18px rgba(255, 190, 70, .55), 0 2px 4px rgba(0,0,0,.6);
+  white-space: nowrap;
 }
-.stage video, .stage canvas {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);
-}
-.stage .hud {
-  position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 20px;
-  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px;
-  background: linear-gradient(to top, rgba(0,0,0,.62), rgba(0,0,0,0));
-  color: #f4f1ea; pointer-events: none;
-}
-.chord-now { font: 800 clamp(56px, 11vw, 112px)/.9 var(--font-display); letter-spacing: -0.03em; }
-.chord-now.muted { opacity: .45; }
-.chord-now.pulse { animation: pulse .35s ease-out; }
-@keyframes pulse { from { transform: scale(1.12); color: #ffd08a; } to { transform: scale(1); } }
-.hud-side { text-align: right; font-size: 13px; display: grid; gap: 4px; }
-.hud-side .gest { font-size: 15px; font-weight: 600; }
-.strum-dir { font: 500 12px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.tag small { display: block; font: 500 12px var(--font-mono); color: #f3e7c8; opacity: .85; margin-top: 4px; text-align: center; }
+.tag.pulse { animation: pulse .3s ease-out; }
+@keyframes pulse { from { transform: translate(-50%, -100%) scale(1.18); } to { transform: translate(-50%, -100%) scale(1); } }
+.bands { position: absolute; left: 10px; top: 0; bottom: 0; display: grid; grid-template-rows: 38fr 24fr 38fr; pointer-events: none; }
+.bands span { align-self: center; font: 500 11px var(--font-mono); color: rgba(255,255,255,.55); writing-mode: vertical-rl; transform: rotate(180deg); letter-spacing: .1em; }
+.bands span.on { color: var(--tag); }
+.hud { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; gap: 10px; padding: 12px 14px; pointer-events: none; color: #e9ece8; font: 500 12px var(--font-mono); }
+.hud b { color: var(--tag); font-weight: 500; }
 
 .cover {
   position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px;
   padding: 24px; text-align: center; color: #e9ece8;
-  background:
-    repeating-linear-gradient(90deg, transparent 0 calc(16.66% - 1px), rgba(255,255,255,.07) calc(16.66% - 1px) 16.66%),
-    var(--stage);
+  background: radial-gradient(ellipse at 50% 60%, rgba(111,227,255,.12), transparent 60%), var(--stage);
 }
-.cover p { margin: 0; max-width: 36ch; color: #b9c0ba; }
-.btn {
-  font: 600 16px var(--font-body); border: 0; border-radius: 999px; cursor: pointer;
-  padding: 12px 26px; background: var(--accent); color: var(--accent-fg);
-}
+.cover p { margin: 0; max-width: 38ch; color: #b9c0ba; }
+.btn { font: 600 16px var(--font-body); border: 0; border-radius: 999px; cursor: pointer; padding: 12px 26px; background: var(--accent); color: var(--accent-fg); }
 .btn:disabled { opacity: .55; cursor: progress; }
-.btn:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.status { font: 500 12px var(--font-mono); letter-spacing: .04em; color: #9fa79f; }
+.btn:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.status { font: 500 12px var(--font-mono); color: #9fa79f; }
 .status.err { color: #ff9b8a; }
 
 /* Panel */
 .panel { display: grid; gap: 14px; min-width: 0; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
-.eyebrow { font: 600 12px var(--font-body); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
-
-.now { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; }
-.diagram { width: 132px; height: auto; color: var(--fg); }
-.diagram .str, .diagram .fret { stroke: var(--muted); }
-.diagram .nut { stroke: var(--fg); }
-.diagram .dot { fill: var(--accent); }
-.diagram .open { fill: none; stroke: var(--fg); }
-.diagram text { fill: var(--muted); font: 500 12px var(--font-mono); }
-.diagram .fno { fill: var(--muted); font-size: 10px; }
-.now-name { font: 800 44px/1 var(--font-display); }
-.now-notes { font: 500 12px var(--font-mono); color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+.now-name { font: 800 46px/1 var(--font-display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.now-sub { font: 500 13px var(--font-mono); color: var(--muted); margin-top: 6px; overflow-wrap: anywhere; }
+.piano { width: 100%; height: auto; margin-top: 12px; }
+.piano .w { fill: var(--surface); stroke: var(--muted); }
+.piano .b { fill: var(--fg); }
+.piano .on { fill: var(--accent); }
+.piano .root { fill: var(--live); }
 
 .fingers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .finger { text-align: center; font-size: 12px; color: var(--muted); display: grid; gap: 6px; justify-items: center; }
-.finger i {
-  display: block; width: 14px; height: 30px; border-radius: 7px; border: 2px solid var(--line); background: transparent;
-  transition: background .12s, border-color .12s, transform .12s;
-}
+.finger i { display: block; width: 14px; height: 30px; border-radius: 7px; border: 2px solid var(--line); transition: background .12s, transform .12s; }
 .finger.on i { background: var(--live); border-color: var(--live); transform: translateY(-4px); }
 .finger.on { color: var(--fg); }
 
 .controls { display: grid; gap: 12px; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.row label { font-weight: 500; }
-input[type="range"] { accent-color: var(--accent); width: 160px; max-width: 100%; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.row label { font-weight: 500; font-size: 14px; }
+select { font: inherit; font-size: 14px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+.seg button { font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--fg); padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+input[type="range"] { accent-color: var(--accent); width: 140px; max-width: 100%; }
 input[type="checkbox"] { accent-color: var(--accent); width: 18px; height: 18px; }
 .hint { font-size: 13px; color: var(--muted); margin: 0; }
 
-.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
 .chip {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px;
   text-align: left; padding: 9px 10px; border-radius: 10px; border: 1px solid var(--line);
   background: transparent; color: var(--fg); font: inherit; cursor: pointer;
 }
@@ -136,34 +135,52 @@ input[type="checkbox"] { accent-color: var(--accent); width: 18px; height: 18px;
 .chip.active { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 .chip .emo { font-size: 22px; line-height: 1; }
 .chip .nm { font: 800 18px/1 var(--font-display); }
+.chip .rn { font: 500 11px var(--font-mono); opacity: .7; margin-left: 4px; }
 .chip .ds { display: block; font-size: 12px; opacity: .78; margin-top: 3px; }
-.chip kbd { font: 500 11px var(--font-mono); opacity: .6; }
 .chip.mute { cursor: default; }
 
-@media (prefers-reduced-motion: reduce) {
-  .chord-now.pulse { animation: none; }
-  .finger i { transition: none; }
-}
+@media (prefers-reduced-motion: reduce) { .tag.pulse { animation: none; } .finger i { transition: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>Hand <span>Chord</span> Cam</h1>
-    <p class="tagline">카메라에 손 모양을 보여주면 그 모양에 맞는 기타 코드가 울립니다. 손을 위아래로 흔들면 다시 스트럼합니다.</p>
+    <p class="tagline">왼손으로 코드를 고르고, 오른손으로 연주하는 제스처 신스. 손 높이로 7th·9th 같은 확장 코드까지 바꿀 수 있습니다.</p>
   </header>
 
   <main>
+    <aside class="card guide" aria-label="사용법">
+      <h2>Guide</h2>
+      <h3><span class="hand">왼손</span>코드 고르기</h3>
+      <ul>
+        <li>손가락 모양 = 키 안의 몇 번째 코드 (아래 코드표)</li>
+        <li>손을 <b>아래</b>에 두면 3화음, <b>가운데</b> 7th, <b>위</b> 9th</li>
+        <li>주먹 = 소리 멈춤</li>
+      </ul>
+      <h3><span class="hand r">오른손</span>연주하기</h3>
+      <ul>
+        <li><b>기타</b>: 검지로 화면의 줄 6개를 위아래로 긁기. 천천히 = 한 줄씩, 빠르게 = 스트럼</li>
+        <li><b>신스 패드</b>: 엄지·검지를 벌릴수록 소리가 커지고, 손이 위로 갈수록 밝아짐</li>
+        <li>오른손 주먹 = 뮤트</li>
+      </ul>
+      <h3>한 손만 보일 때</h3>
+      <ul>
+        <li>그 손이 코드를 고르고, 모양이 바뀔 때마다 자동으로 칩니다</li>
+      </ul>
+      <h3>팁</h3>
+      <ul>
+        <li>손바닥이 카메라를 향하게, 밝은 곳에서</li>
+        <li>왼손·오른손이 반대로 잡히면 "손 바꾸기"를 켜세요</li>
+      </ul>
+    </aside>
+
     <section class="stage" aria-label="카메라">
       <video id="video" playsinline muted></video>
       <canvas id="overlay"></canvas>
-      <div class="hud">
-        <div id="chordNow" class="chord-now muted">—</div>
-        <div class="hud-side">
-          <span id="gestNow" class="gest">손을 보여주세요</span>
-          <span id="strumDir" class="strum-dir">&nbsp;</span>
-        </div>
-      </div>
+      <div class="bands" aria-hidden="true"><span data-l="2">9th</span><span data-l="1">7th</span><span data-l="0">3화음</span></div>
+      <div class="hud"><span id="hudKey">KEY <b>C</b> major</span><span id="hudMode">기타</span></div>
+      <div id="tag" class="tag" hidden></div>
       <div id="cover" class="cover">
         <button id="startBtn" class="btn" type="button" disabled>카메라 켜고 연주 시작</button>
         <p>카메라 영상은 이 브라우저 안에서만 처리되고 어디에도 전송되지 않습니다.</p>
@@ -174,17 +191,13 @@ input[type="checkbox"] { accent-color: var(--accent); width: 18px; height: 18px;
     <aside class="panel">
       <div class="card">
         <p class="eyebrow">지금 코드</p>
-        <div class="now">
-          <svg id="diagram" class="diagram" viewBox="0 0 150 190" role="img" aria-label="코드 다이어그램"></svg>
-          <div>
-            <div id="nowName" class="now-name">C</div>
-            <div id="nowNotes" class="now-notes"></div>
-          </div>
-        </div>
+        <div id="nowName" class="now-name">—</div>
+        <div id="nowSub" class="now-sub">왼손을 보여주세요</div>
+        <svg id="piano" class="piano" viewBox="0 0 141 52" role="img" aria-label="코드 구성음"></svg>
       </div>
 
       <div class="card">
-        <p class="eyebrow">인식된 손가락</p>
+        <p class="eyebrow">왼손 손가락</p>
         <div class="fingers" id="fingers">
           <div class="finger"><i></i>엄지</div>
           <div class="finger"><i></i>검지</div>
@@ -196,86 +209,150 @@ input[type="checkbox"] { accent-color: var(--accent); width: 18px; height: 18px;
 
       <div class="card controls">
         <div class="row">
+          <label>악기</label>
+          <div class="seg" id="instSeg">
+            <button type="button" data-v="guitar" aria-pressed="true">기타</button>
+            <button type="button" data-v="pad" aria-pressed="false">신스 패드</button>
+          </div>
+        </div>
+        <div class="row">
+          <label for="keySel">키</label>
+          <span>
+            <select id="keySel"></select>
+            <select id="scaleSel">
+              <option value="major">메이저</option>
+              <option value="minor">마이너</option>
+              <option value="harmonic">하모닉 마이너</option>
+            </select>
+          </span>
+        </div>
+        <div class="row">
           <label for="vol">볼륨</label>
           <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
-        </div>
-        <div class="row">
-          <label for="autoStrum">손 모양이 바뀌면 바로 연주</label>
-          <input id="autoStrum" type="checkbox" checked>
-        </div>
-        <div class="row">
-          <label for="shakeStrum">손을 흔들어 스트럼</label>
-          <input id="shakeStrum" type="checkbox" checked>
         </div>
         <div class="row">
           <label for="thumbSens">엄지 인식 민감도</label>
           <input id="thumbSens" type="range" min="0" max="1" step="0.05" value="0.5">
         </div>
-        <p class="hint">양손을 보여주면 화면 왼쪽 손(왼손)은 코드, 오른쪽 손(오른손)은 스트럼을 맡습니다. 엄지를 안 폈는데 켜지면 민감도를 낮추세요.</p>
-        <p class="hint">카메라 없이도 아래 코드표를 누르거나 키보드 1–8로 들어볼 수 있습니다.</p>
+        <div class="row">
+          <label for="swapHands">손 바꾸기 (오른손으로 코드)</label>
+          <input id="swapHands" type="checkbox">
+        </div>
+        <p class="hint">카메라 없이: 코드표를 누르거나 키보드 1–7 (Shift = 7th).</p>
       </div>
     </aside>
   </main>
 
   <section class="card">
-    <p class="eyebrow">손 모양 → 코드</p>
+    <p class="eyebrow" id="legendTitle">왼손 모양 → 코드</p>
     <div class="legend" id="legend"></div>
   </section>
 </div>
 
 <script type="module">
-// ---------- 코드 정의 ----------
-// frets: 6번줄(저음 E)→1번줄(고음 E). -1 = 치지 않음
-const OPEN = [40, 45, 50, 55, 59, 64];
-const CHORDS = {
-  C:  { frets: [-1, 3, 2, 0, 1, 0] },
-  G:  { frets: [3, 2, 0, 0, 0, 3] },
-  Am: { frets: [-1, 0, 2, 2, 1, 0] },
-  F:  { frets: [1, 3, 3, 2, 1, 1], barre: { fret: 1, from: 0 } },
-  D:  { frets: [-1, -1, 0, 2, 3, 2] },
-  Em: { frets: [0, 2, 2, 0, 0, 0] },
-  E7: { frets: [0, 2, 0, 1, 0, 0] },
-  Dm: { frets: [-1, -1, 0, 2, 3, 1] },
+// ================= 음악 이론 =================
+const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const SCALES = {
+  major:    [0, 2, 4, 5, 7, 9, 11],
+  minor:    [0, 2, 3, 5, 7, 8, 10],
+  harmonic: [0, 2, 3, 5, 7, 8, 11],
 };
-for (const ch of Object.values(CHORDS)) {
-  ch.notes = ch.frets.map((f, s) => (f < 0 ? null : OPEN[s] + f)).filter((n) => n !== null);
+const SCALE_LABEL = { major: "major", minor: "minor", harmonic: "harmonic minor" };
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII"];
+const LEVEL_LABEL = ["3화음", "7th", "9th"];
+
+// 왼손 패턴(엄지·검지·중지·약지·새끼) → 음계 몇 번째 코드
+const DEGREES = [
+  { key: "01000", deg: 0, emo: "☝️", desc: "검지" },
+  { key: "01100", deg: 1, emo: "✌️", desc: "검지 + 중지" },
+  { key: "01110", deg: 2, emo: "🤟", desc: "검지·중지·약지" },
+  { key: "01111", deg: 3, emo: "🖖", desc: "엄지 빼고 넷" },
+  { key: "11111", deg: 4, emo: "🖐️", desc: "다섯 손가락" },
+  { key: "10000", deg: 5, emo: "👍", desc: "엄지만" },
+  { key: "10001", deg: 6, emo: "🤙", desc: "엄지 + 새끼" },
+];
+const BY_KEY = Object.fromEntries(DEGREES.map((d) => [d.key, d]));
+const FIST = "00000";
+
+function qualityName(iv) {
+  const [, t, f, s, n] = iv;
+  const triad = t === 4 && f === 7 ? "" : t === 3 && f === 7 ? "m" : t === 3 && f === 6 ? "°" : t === 4 && f === 8 ? "+" : "";
+  if (s === undefined) return triad;
+  let sev;
+  if (t === 4 && f === 7 && s === 11) sev = "maj7";
+  else if (t === 4 && f === 7 && s === 10) sev = "7";
+  else if (t === 3 && f === 7 && s === 10) sev = "m7";
+  else if (t === 3 && f === 6 && s === 10) sev = "ø7";
+  else if (t === 3 && f === 6 && s === 9) sev = "°7";
+  else if (t === 3 && f === 7 && s === 11) sev = "m(maj7)";
+  else if (t === 4 && f === 8 && s === 11) sev = "+maj7";
+  else sev = triad + "7";
+  if (n === undefined) return sev;
+  if (n === 14) return { maj7: "maj9", "7": "9", m7: "m9", "ø7": "ø9" }[sev] || sev + "(9)";
+  return sev + "(♭9)";
 }
 
-// 손가락 패턴: 엄지·검지·중지·약지·새끼 (1 = 펴짐)
-const GESTURES = [
-  { key: "01000", chord: "C",  emo: "☝️", desc: "검지" },
-  { key: "01100", chord: "G",  emo: "✌️", desc: "검지 + 중지" },
-  { key: "01110", chord: "Am", emo: "🤟", desc: "검지 · 중지 · 약지" },
-  { key: "01111", chord: "F",  emo: "🖖", desc: "엄지 빼고 네 손가락" },
-  { key: "11111", chord: "D",  emo: "🖐️", desc: "다섯 손가락 활짝" },
-  { key: "10000", chord: "Em", emo: "👍", desc: "엄지만" },
-  { key: "10001", chord: "E7", emo: "🤙", desc: "엄지 + 새끼" },
-  { key: "01001", chord: "Dm", emo: "🤘", desc: "검지 + 새끼" },
-  { key: "00000", chord: null, emo: "✊", desc: "주먹 = 소리 멈춤" },
-];
-const BY_KEY = Object.fromEntries(GESTURES.map((g) => [g.key, g]));
-const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const noteName = (m) => NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1);
+function buildChord(keyPc, scale, deg, level) {
+  const sc = SCALES[scale];
+  const tone = (k) => { const i = deg + k; return sc[i % 7] + 12 * Math.floor(i / 7); };
+  const steps = [[0, 2, 4], [0, 2, 4, 6], [0, 2, 4, 6, 8]][level];
+  const base = tone(0);
+  const iv = steps.map((k) => tone(k) - base);
+  const rootPc = (keyPc + base) % 12;
+  const q = qualityName(iv);
+  const minorish = iv[1] === 3;
+  let roman = ROMAN[deg];
+  if (minorish) roman = roman.toLowerCase();
+  if (iv[1] === 3 && iv[2] === 6) roman += "°";
+  return { name: NOTE_NAMES[rootPc] + q, rootPc, iv, roman, notes: voicing(rootPc, iv) };
+}
 
-// ---------- 손 모양 판별 ----------
-let thumbK = 0.62; // 엄지 펴짐 기준 (클수록 엄지를 더 확실히 펴야 인식)
-function classify(lm, w = 1, h = 1) {
-  const p = (i) => [lm[i].x * w, lm[i].y * h, (lm[i].z || 0) * w];
-  const d = (a, b) => { const A = p(a), B = p(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
-  const palm = d(0, 9) || 1;
-  // 엄지: 끝이 중지 뿌리에서 멀고, 엄지 IP 관절보다 바깥에 있으면 펴짐
-  const thumb = d(4, 9) > thumbK * palm && d(4, 13) > d(3, 13) && d(4, 5) > thumbK * 0.68 * palm;
-  // 나머지: 끝이 PIP 관절보다 손목에서 충분히 멀면 펴짐
-  const ext = (tip, pip) => d(0, tip) > d(0, pip) * 1.12;
-  const bits = [thumb, ext(8, 6), ext(12, 10), ext(16, 14), ext(20, 18)];
+// 기타처럼 6음 보이싱: 베이스 근음(E2~D#3) 위로 5도·근음·3도·확장음 순서로 쌓기
+function voicing(rootPc, iv) {
+  const bass = 40 + ((rootPc - 4 + 12) % 12);
+  const pcs = iv.map((i) => (rootPc + i) % 12);
+  const order = [2, 0, 1];
+  for (let i = 3; i < pcs.length; i++) order.push(i);
+  order.push(2, 0, 1);
+  const notes = [bass];
+  let cur = bass + 1;
+  for (const idx of order) {
+    if (notes.length >= 6) break;
+    let n = cur;
+    while (n % 12 !== pcs[idx]) n++;
+    notes.push(n); cur = n + 1;
+  }
+  return notes;
+}
+const noteName = (m) => NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1);
+const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+
+// ================= 손 모양 판별 =================
+let thumbRatio = 0.8; // 엄지 끝 ↔ 검지 뿌리 거리 / 손바닥 폭 (작을수록 민감)
+function classify(lm, world) {
+  const P = world || lm;
+  const sub = (a, b) => [P[b].x - P[a].x, P[b].y - P[a].y, (P[b].z || 0) - (P[a].z || 0)];
+  const len = (v) => Math.hypot(v[0], v[1], v[2]) || 1e-6;
+  const bend = (a, b, c) => {
+    const u = sub(a, b), w = sub(b, c);
+    const cos = (u[0] * w[0] + u[1] * w[1] + u[2] * w[2]) / (len(u) * len(w));
+    return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+  };
+  const dist = (a, b) => len(sub(a, b));
+  // 손가락: 관절 두 개의 굽은 각도 합이 작으면 펴짐 (손 기울기·거리에 영향 적음)
+  const ext = (m, p, d, t) => bend(m, p, d) + bend(p, d, t) < 80;
+  const palmW = dist(5, 17);
+  const thumb = bend(2, 3, 4) < 45 && dist(4, 5) > thumbRatio * palmW && dist(4, 17) > dist(3, 17);
+  const bits = [thumb, ext(5, 6, 7, 8), ext(9, 10, 11, 12), ext(13, 14, 15, 16), ext(17, 18, 19, 20)];
   return { bits, key: bits.map((b) => (b ? 1 : 0)).join("") };
 }
-window.handChord = { classify, CHORDS, GESTURES };
+window.handChord = { classify, buildChord, voicing };
 
-// ---------- 오디오 (Karplus-Strong 플럭) ----------
-let ctx = null, master = null;
+// ================= 오디오 =================
+let ctx = null, master = null, analyser = null, waveBuf = null;
 const voices = [];
 const bufCache = new Map();
+const pad = { filter: null, gain: null, oscs: [] };
 const volEl = document.getElementById("vol");
 
 function initAudio() {
@@ -285,168 +362,201 @@ function initAudio() {
   comp.threshold.value = -16; comp.ratio.value = 4;
   master = ctx.createGain();
   master.gain.value = Number(volEl.value);
-  const body = ctx.createBiquadFilter();
-  body.type = "peaking"; body.frequency.value = 220; body.Q.value = 1; body.gain.value = 4;
   const tone = ctx.createBiquadFilter();
-  tone.type = "lowpass"; tone.frequency.value = 5200;
-  master.connect(body).connect(tone).connect(comp).connect(ctx.destination);
-  // 짧은 합성 리버브
+  tone.type = "lowpass"; tone.frequency.value = 6000;
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 2048;
+  waveBuf = new Float32Array(analyser.fftSize);
+  master.connect(tone).connect(comp).connect(analyser).connect(ctx.destination);
   const conv = ctx.createConvolver();
-  const len = Math.floor(ctx.sampleRate * 1.6);
+  const len = Math.floor(ctx.sampleRate * 2.2);
   const ir = ctx.createBuffer(2, len, ctx.sampleRate);
   for (let c = 0; c < 2; c++) {
     const ch = ir.getChannelData(c);
-    for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
   }
   conv.buffer = ir;
-  const send = ctx.createGain(); send.gain.value = 0.16;
+  const send = ctx.createGain(); send.gain.value = 0.22;
   tone.connect(send).connect(conv).connect(comp);
+
+  // 신스 패드: 6음 × 디튠된 톱니파 2개 → 로우패스 → 볼륨
+  pad.filter = ctx.createBiquadFilter();
+  pad.filter.type = "lowpass"; pad.filter.frequency.value = 1200; pad.filter.Q.value = 3;
+  pad.gain = ctx.createGain(); pad.gain.gain.value = 0;
+  pad.filter.connect(pad.gain).connect(master);
+  for (let i = 0; i < 6; i++) {
+    const g = ctx.createGain(); g.gain.value = 0.07;
+    g.connect(pad.filter);
+    for (const det of [-7, 7]) {
+      const o = ctx.createOscillator();
+      o.type = "sawtooth"; o.detune.value = det; o.frequency.value = 220;
+      o.connect(g); o.start();
+      pad.oscs.push({ o, i });
+    }
+  }
 }
 
 function pluckBuffer(midi) {
   if (bufCache.has(midi)) return bufCache.get(midi);
   const sr = ctx.sampleRate;
-  const f = 440 * Math.pow(2, (midi - 69) / 12);
-  const N = Math.max(2, Math.round(sr / f));
+  const N = Math.max(2, Math.round(sr / mtof(midi)));
   const len = Math.floor(sr * 3.2);
   const buf = ctx.createBuffer(1, len, sr);
   const y = buf.getChannelData(0);
   let prev = 0;
   for (let i = 0; i < N; i++) { const r = Math.random() * 2 - 1; prev = 0.6 * r + 0.4 * prev; y[i] = prev; }
-  const decay = 0.9965;
-  for (let i = N; i < len; i++) y[i] = decay * 0.5 * (y[i - N] + (i - N - 1 >= 0 ? y[i - N - 1] : 0));
+  for (let i = N; i < len; i++) y[i] = 0.9965 * 0.5 * (y[i - N] + (i - N - 1 >= 0 ? y[i - N - 1] : 0));
   let peak = 0;
   for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(y[i]));
   const fade = Math.floor(sr * 0.25);
-  for (let i = 0; i < len; i++) {
-    y[i] = (y[i] / (peak || 1)) * 0.9;
-    if (i > len - fade) y[i] *= (len - i) / fade;
-  }
+  for (let i = 0; i < len; i++) { y[i] = (y[i] / (peak || 1)) * 0.9; if (i > len - fade) y[i] *= (len - i) / fade; }
   bufCache.set(midi, buf);
   return buf;
 }
 
-function stopVoices(t = 0.04) {
+// 줄마다 마지막 소리를 기억해서 같은 줄을 다시 치면 이전 소리를 끊음 (실제 기타처럼)
+const stringVoice = new Array(6).fill(null);
+function pluck(stringIdx, midi, vel = 1, when = 0) {
+  initAudio();
+  const t = ctx.currentTime + 0.01 + when;
+  const old = stringVoice[stringIdx];
+  if (old) { try { old.g.gain.setTargetAtTime(0, t, 0.015); old.src.stop(t + 0.15); } catch {} }
+  const src = ctx.createBufferSource();
+  src.buffer = pluckBuffer(midi);
+  const g = ctx.createGain();
+  g.gain.value = 0.32 * Math.max(0.25, Math.min(1.2, vel));
+  src.connect(g).connect(master);
+  src.start(t);
+  const v = { src, g };
+  stringVoice[stringIdx] = v; voices.push(v);
+  if (voices.length > 40) voices.shift();
+}
+function strum(chord, dir = "down", vel = 1) {
+  const idx = [0, 1, 2, 3, 4, 5];
+  if (dir === "up") idx.reverse();
+  const gap = dir === "up" ? 0.014 : 0.02;
+  idx.forEach((s, k) => pluck(s, chord.notes[s], vel, k * gap));
+}
+function muteAll(t = 0.04) {
   if (!ctx) return;
   const now = ctx.currentTime;
-  while (voices.length) {
-    const v = voices.pop();
-    try { v.g.gain.cancelScheduledValues(now); v.g.gain.setTargetAtTime(0, now, t); v.src.stop(now + t * 8); } catch {}
-  }
+  for (const v of voices) { try { v.g.gain.cancelScheduledValues(now); v.g.gain.setTargetAtTime(0, now, t); } catch {} }
+  stringVoice.fill(null);
+  setPad(0);
 }
-
-function strum(name, dir = "down") {
-  const ch = CHORDS[name];
-  if (!ch) return;
-  initAudio();
-  stopVoices(0.03);
-  const notes = dir === "up" ? [...ch.notes].reverse() : ch.notes;
-  const gap = dir === "up" ? 0.014 : 0.022;
-  const t0 = ctx.currentTime + 0.02;
-  notes.forEach((m, i) => {
-    const src = ctx.createBufferSource();
-    src.buffer = pluckBuffer(m);
-    const g = ctx.createGain();
-    g.gain.value = (dir === "up" ? 0.22 : 0.3) * (0.9 + Math.random() * 0.2);
-    src.connect(g).connect(master);
-    src.start(t0 + i * gap);
-    voices.push({ src, g });
-  });
-  flash(name, dir);
+function setPadChord(chord) {
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  for (const { o, i } of pad.oscs) o.frequency.setTargetAtTime(mtof(chord.notes[i]), now, 0.05);
 }
-
+function setPad(level, cutoff) {
+  if (!ctx) return;
+  const now = ctx.currentTime;
+  pad.gain.gain.setTargetAtTime(level * 0.55, now, 0.08);
+  if (cutoff) pad.filter.frequency.setTargetAtTime(cutoff, now, 0.06);
+}
 volEl.addEventListener("input", () => { if (master) master.gain.setTargetAtTime(Number(volEl.value), ctx.currentTime, 0.02); });
 
-// ---------- UI ----------
-const chordNow = document.getElementById("chordNow");
-const gestNow = document.getElementById("gestNow");
-const strumDirEl = document.getElementById("strumDir");
-const nowName = document.getElementById("nowName");
-const nowNotes = document.getElementById("nowNotes");
-const diagram = document.getElementById("diagram");
+// ================= 상태 & UI =================
+const state = { keyPc: 0, scale: "major", inst: "guitar", chord: null, deg: null, level: 0 };
+const $ = (id) => document.getElementById(id);
+const keySel = $("keySel"), scaleSel = $("scaleSel"), legend = $("legend");
+const nowName = $("nowName"), nowSub = $("nowSub"), piano = $("piano"), tag = $("tag");
 const fingerEls = [...document.querySelectorAll(".finger")];
-const legend = document.getElementById("legend");
+const bandEls = [...document.querySelectorAll(".bands span")];
 
-GESTURES.forEach((g, idx) => {
-  const b = document.createElement("button");
-  b.type = "button";
-  b.className = "chip" + (g.chord ? "" : " mute");
-  b.dataset.chord = g.chord || "";
-  b.innerHTML = `<span class="emo">${g.emo}</span><span><span class="nm">${g.chord || "Mute"}</span><span class="ds">${g.desc}</span></span>${g.chord ? `<kbd>${idx + 1}</kbd>` : ""}`;
-  b.addEventListener("click", () => { if (g.chord) { showChord(g.chord, g); strum(g.chord, "down"); } else { stopVoices(0.05); showMute(); } });
-  legend.appendChild(b);
-});
+NOTE_NAMES.forEach((n, i) => { const o = document.createElement("option"); o.value = i; o.textContent = n; keySel.appendChild(o); });
+keySel.addEventListener("change", () => { state.keyPc = Number(keySel.value); refreshKey(); });
+scaleSel.addEventListener("change", () => { state.scale = scaleSel.value; refreshKey(); });
+document.querySelectorAll("#instSeg button").forEach((b) => b.addEventListener("click", () => {
+  state.inst = b.dataset.v;
+  document.querySelectorAll("#instSeg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  $("hudMode").textContent = b.textContent;
+  muteAll(0.05);
+}));
+$("thumbSens").addEventListener("input", (e) => { thumbRatio = 1.1 - Number(e.target.value) * 0.6; });
 
-window.addEventListener("keydown", (e) => {
-  if (e.target.closest && e.target.closest("input")) return;
-  const n = Number(e.key);
-  if (n >= 1 && n <= 8) { const g = GESTURES[n - 1]; showChord(g.chord, g); strum(g.chord, e.shiftKey ? "up" : "down"); }
-  if (e.key === "0") { stopVoices(0.05); showMute(); }
-});
+function refreshKey() {
+  $("hudKey").innerHTML = `KEY <b>${NOTE_NAMES[state.keyPc]}</b> ${SCALE_LABEL[state.scale]}`;
+  buildLegend();
+  if (state.deg !== null) selectChord(state.deg, state.level, false);
+}
 
-function drawDiagram(name) {
-  const ch = CHORDS[name];
-  const x0 = 25, dx = 20, y0 = 42, dy = 32, frets = 4;
-  let s = "";
-  for (let i = 0; i <= frets; i++) {
-    const y = y0 + i * dy;
-    s += `<line class="${i === 0 ? "nut" : "fret"}" x1="${x0}" y1="${y}" x2="${x0 + 5 * dx}" y2="${y}" stroke-width="${i === 0 ? 4 : 1.2}"/>`;
-  }
-  for (let i = 0; i < 6; i++) {
-    s += `<line class="str" x1="${x0 + i * dx}" y1="${y0}" x2="${x0 + i * dx}" y2="${y0 + frets * dy}" stroke-width="${1 + (5 - i) * 0.25}"/>`;
-  }
-  for (let i = 1; i <= frets; i++) s += `<text class="fno" x="${x0 + 5 * dx + 10}" y="${y0 + (i - 0.5) * dy + 4}">${i}</text>`;
-  if (ch.barre) {
-    const y = y0 + (ch.barre.fret - 0.5) * dy;
-    s += `<rect class="dot" x="${x0 + ch.barre.from * dx - 7}" y="${y - 7}" width="${(5 - ch.barre.from) * dx + 14}" height="14" rx="7"/>`;
-  }
-  ch.frets.forEach((f, i) => {
-    const x = x0 + i * dx;
-    if (f < 0) s += `<text x="${x}" y="${y0 - 14}" text-anchor="middle">×</text>`;
-    else if (f === 0) s += `<circle class="open" cx="${x}" cy="${y0 - 18}" r="5" stroke-width="1.6"/>`;
-    else if (!(ch.barre && f === ch.barre.fret)) s += `<circle class="dot" cx="${x}" cy="${y0 + (f - 0.5) * dy}" r="8"/>`;
+function buildLegend() {
+  legend.innerHTML = "";
+  DEGREES.forEach((d, idx) => {
+    const ch = buildChord(state.keyPc, state.scale, d.deg, 0);
+    const ch7 = buildChord(state.keyPc, state.scale, d.deg, 1);
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.dataset.deg = d.deg;
+    b.innerHTML = `<span class="emo">${d.emo}</span><span><span class="nm">${ch.name}</span><span class="rn">${ch.roman} · ${idx + 1}</span><span class="ds">${d.desc} · 위로 ${ch7.name}</span></span>`;
+    b.addEventListener("click", () => audition(d.deg, 0));
+    legend.appendChild(b);
   });
-  ["E", "A", "D", "G", "B", "E"].forEach((n, i) => { s += `<text x="${x0 + i * dx}" y="${y0 + frets * dy + 18}" text-anchor="middle">${n}</text>`; });
-  diagram.innerHTML = s;
-  diagram.setAttribute("aria-label", `${name} 코드 다이어그램`);
+  const m = document.createElement("div");
+  m.className = "chip mute";
+  m.innerHTML = `<span class="emo">✊</span><span><span class="nm">Mute</span><span class="ds">주먹 = 소리 멈춤</span></span>`;
+  legend.appendChild(m);
 }
 
-function showChord(name, g) {
-  chordNow.textContent = name;
-  chordNow.classList.remove("muted");
-  nowName.textContent = name;
-  nowNotes.textContent = CHORDS[name].notes.map(noteName).join(" · ");
-  gestNow.textContent = `${g.emo} ${g.desc}`;
-  drawDiagram(name);
-  for (const c of legend.children) c.classList.toggle("active", c.dataset.chord === name);
+function drawPiano(chord) {
+  const W = 10, lo = 48;
+  const whites = [0, 2, 4, 5, 7, 9, 11], blacks = [1, 3, 6, 8, 10];
+  const lit = new Map();
+  if (chord) chord.notes.forEach((n, i) => { let m = n; while (m < lo) m += 12; while (m >= lo + 24) m -= 12; lit.set(m, i === 0 ? "root" : "on"); });
+  let s = "", x = 0.5;
+  const pos = {};
+  for (let o = 0; o < 2; o++) for (const w of whites) { pos[lo + o * 12 + w] = x; x += W; }
+  for (const [m, px] of Object.entries(pos)) s += `<rect class="w ${lit.get(+m) || ""}" x="${px}" y="0.5" width="${W}" height="51" rx="1.5"/>`;
+  for (let o = 0; o < 2; o++) for (const b of blacks) {
+    const m = lo + o * 12 + b, px = pos[m - 1] + W - 3;
+    s += `<rect class="b ${lit.get(m) || ""}" x="${px}" y="0.5" width="6" height="31" rx="1"/>`;
+  }
+  piano.innerHTML = s;
 }
-function showMute() {
-  chordNow.textContent = "Mute";
-  chordNow.classList.add("muted");
-  gestNow.textContent = "✊ 주먹";
-  for (const c of legend.children) c.classList.remove("active");
-}
-function flash(name, dir) {
-  chordNow.classList.remove("pulse");
-  void chordNow.offsetWidth;
-  chordNow.classList.add("pulse");
-  strumDirEl.textContent = dir === "up" ? "↑ up strum" : "↓ down strum";
-}
-showChord("C", GESTURES[0]);
-for (const c of legend.children) c.classList.remove("active");
 
-// ---------- 카메라 + 손 인식 ----------
-const video = document.getElementById("video");
-const canvas = document.getElementById("overlay");
-const g2d = canvas.getContext("2d");
-const cover = document.getElementById("cover");
-const startBtn = document.getElementById("startBtn");
-const statusEl = document.getElementById("status");
-const autoEl = document.getElementById("autoStrum");
-const shakeEl = document.getElementById("shakeStrum");
+function selectChord(deg, level, play = true, vel = 1) {
+  const chord = buildChord(state.keyPc, state.scale, deg, level);
+  const changed = !state.chord || chord.name !== state.chord.name || chord.notes.join() !== state.chord.notes.join();
+  state.chord = chord; state.deg = deg; state.level = level;
+  nowName.textContent = chord.name;
+  nowSub.textContent = `${chord.roman} · ${LEVEL_LABEL[level]} · ${chord.notes.map(noteName).join(" ")}`;
+  drawPiano(chord);
+  for (const c of legend.children) c.classList.toggle("active", Number(c.dataset.deg) === deg && c.dataset.deg !== undefined);
+  bandEls.forEach((b) => b.classList.toggle("on", Number(b.dataset.l) === level));
+  setPadChord(chord);
+  if (changed && play) {
+    if (state.inst === "guitar") strum(chord, "down", vel);
+    pulseTag();
+  }
+  return changed;
+}
 
-const LINKS = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-const TIPS = [4, 8, 12, 16, 20];
+let auditionTimer = 0;
+function audition(deg, level) {
+  initAudio();
+  selectChord(deg, level, false);
+  if (state.inst === "guitar") strum(state.chord, "down");
+  else { setPad(0.6, 2400); clearTimeout(auditionTimer); auditionTimer = setTimeout(() => { if (!handsActive) setPad(0); }, 1600); }
+}
+window.addEventListener("keydown", (e) => {
+  if (e.target.closest && e.target.closest("input, select")) return;
+  const m = /^Digit([1-7])$/.exec(e.code);
+  if (m) audition(Number(m[1]) - 1, e.shiftKey ? 1 : 0);
+  if (e.code === "Digit0") muteAll(0.05);
+});
+
+function pulseTag() { tag.classList.remove("pulse"); void tag.offsetWidth; tag.classList.add("pulse"); }
+
+refreshKey();
+drawPiano(null);
+
+// ================= 카메라 + 손 인식 =================
+const video = $("video"), canvas = $("overlay"), g2d = canvas.getContext("2d");
+const cover = $("cover"), startBtn = $("startBtn"), statusEl = $("status"), swapEl = $("swapHands");
+const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const STR_TOP = 0.28, STR_BOT = 0.72;
+const strY = (s) => STR_TOP + (STR_BOT - STR_TOP) * (s / 5);
 
 let landmarker = null;
 function setStatus(msg, err = false) { statusEl.textContent = msg; statusEl.classList.toggle("err", err); }
@@ -456,15 +566,9 @@ async function loadModel() {
     const { FilesetResolver, HandLandmarker } = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14");
     const files = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
     const opts = (delegate) => ({
-      baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-        delegate,
-      },
-      runningMode: "VIDEO",
-      numHands: 2,
-      minHandDetectionConfidence: 0.6,
-      minHandPresenceConfidence: 0.6,
-      minTrackingConfidence: 0.5,
+      baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task", delegate },
+      runningMode: "VIDEO", numHands: 2,
+      minHandDetectionConfidence: 0.6, minHandPresenceConfidence: 0.6, minTrackingConfidence: 0.5,
     });
     try { landmarker = await HandLandmarker.createFromOptions(files, opts("GPU")); }
     catch { landmarker = await HandLandmarker.createFromOptions(files, opts("CPU")); }
@@ -483,9 +587,7 @@ startBtn.addEventListener("click", async () => {
   setStatus("카메라 권한을 요청하는 중…");
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw new Error("unsupported");
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 960 }, height: { ideal: 720 } }, audio: false,
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
     video.srcObject = stream;
     await video.play();
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
@@ -494,100 +596,181 @@ startBtn.addEventListener("click", async () => {
   } catch (e) {
     console.error(e);
     startBtn.disabled = false;
-    const msg = e.name === "NotAllowedError"
+    setStatus(e.name === "NotAllowedError"
       ? "카메라 권한이 거부되었습니다. 주소창의 카메라 아이콘에서 허용한 뒤 다시 누르세요."
       : e.message === "unsupported"
-        ? "이 브라우저는 카메라를 지원하지 않습니다. https 주소나 localhost에서 열어주세요."
-        : "카메라를 켤 수 없습니다. 다른 앱이 카메라를 쓰고 있는지 확인하세요.";
-    setStatus(msg, true);
+        ? "이 브라우저는 카메라를 지원하지 않습니다. https 주소에서 열어주세요."
+        : "카메라를 켤 수 없습니다. 다른 앱이 카메라를 쓰고 있는지 확인하세요.", true);
   }
 });
 
-// 상태
-const STABLE_FRAMES = 5;
+// 손 역할 나누기: 거울이 아닌 원본 영상에서 MediaPipe "Right" = 사용자의 왼손
+function assignHands(res) {
+  const hs = (res.landmarks || []).map((lm, i) => {
+    const label = res.handednesses?.[i]?.[0]?.categoryName;
+    return { lm, world: res.worldLandmarks?.[i], side: label === "Right" ? "L" : label === "Left" ? "R" : null };
+  });
+  if (hs.length >= 2 && (hs[0].side === hs[1].side || !hs[0].side || !hs[1].side)) {
+    hs.sort((a, b) => b.lm[0].x - a.lm[0].x); hs[0].side = "L"; hs[1].side = "R";
+  }
+  if (swapEl.checked) hs.forEach((h) => (h.side = h.side === "L" ? "R" : "L"));
+  if (hs.length === 1) return { chordHand: hs[0], playHand: null };
+  return { chordHand: hs.find((h) => h.side === "L") || null, playHand: hs.find((h) => h.side === "R") || null };
+}
+
+// 왼손 상태 (최근 프레임 다수결로 떨림 방지)
+const history = [];
+let confirmedKey = null, handsActive = false;
+let lastLevel = 0;
+function levelFromY(y) {
+  // 히스테리시스: 경계 근처에선 이전 단계 유지
+  const edges = [0.38, 0.62];
+  const raw = y < edges[0] ? 2 : y < edges[1] ? 1 : 0;
+  if (raw !== lastLevel) {
+    const m = 0.03;
+    if ((lastLevel === 0 && y > edges[1] - m) || (lastLevel === 2 && y < edges[0] + m) ||
+        (lastLevel === 1 && y > edges[0] - m && y < edges[1] + m)) return lastLevel;
+  }
+  lastLevel = raw; return raw;
+}
+
+function handleChordHand(h, oneHand) {
+  const { bits, key } = classify(h.lm, h.world);
+  bits.forEach((b, i) => fingerEls[i].classList.toggle("on", b));
+  history.push(key); if (history.length > 7) history.shift();
+  const counts = {};
+  for (const k of history) counts[k] = (counts[k] || 0) + 1;
+  const [best, n] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  const level = levelFromY(h.lm[9].y);
+  if (n >= 4) {
+    if (best === FIST) {
+      if (confirmedKey !== FIST) { muteAll(0.06); nowSub.textContent = "✊ 뮤트"; }
+      confirmedKey = FIST;
+    } else if (BY_KEY[best]) {
+      const d = BY_KEY[best];
+      const fresh = confirmedKey !== best || level !== state.level;
+      confirmedKey = best;
+      // 한 손 모드에선 코드가 바뀔 때 자동으로 연주
+      if (fresh) selectChord(d.deg, level, oneHand);
+    }
+  }
+  // 손 옆 코드 태그 (거울 화면 기준 좌표)
+  const xs = h.lm.map((p) => p.x), ys = h.lm.map((p) => p.y);
+  const cx = 1 - (Math.min(...xs) + Math.max(...xs)) / 2, top = Math.min(...ys);
+  if (state.chord && confirmedKey && confirmedKey !== FIST) {
+    tag.hidden = false;
+    tag.style.left = `${cx * 100}%`;
+    tag.style.top = `${Math.max(0.12, top - 0.03) * 100}%`;
+    tag.innerHTML = `${state.chord.name}<small>${state.chord.roman}</small>`;
+  } else tag.hidden = true;
+}
+
+// 오른손: 기타 줄 긁기 / 패드 조절
+let prevTip = null, prevT = 0;
+const flashStr = new Array(6).fill(0);
+function handlePlayHand(h, now) {
+  const lm = h.lm;
+  const { key } = classify(lm, h.world);
+  if (key === FIST) { if (state.inst === "pad") setPad(0); prevTip = null; return; }
+  if (state.inst === "pad") {
+    const d = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
+    const palm = Math.hypot(lm[0].x - lm[9].x, lm[0].y - lm[9].y) || 0.1;
+    const level = Math.max(0, Math.min(1, (d / palm - 0.15) / 0.9));
+    const y = Math.max(0, Math.min(1, (lm[9].y - 0.15) / 0.7));
+    const cutoff = 250 * Math.pow(30, 1 - y);
+    if (state.chord && confirmedKey !== FIST) setPad(level, cutoff); else setPad(0);
+    return;
+  }
+  const tip = lm[8];
+  if (prevTip && state.chord && confirmedKey !== FIST) {
+    const dt = Math.max(0.008, (now - prevT) / 1000);
+    const speed = Math.abs(tip.y - prevTip.y) / dt;
+    const vel = Math.min(1.2, 0.35 + speed * 0.35);
+    const lo = Math.min(prevTip.y, tip.y), hi = Math.max(prevTip.y, tip.y);
+    const crossed = [];
+    for (let s = 0; s < 6; s++) { const y = strY(s); if (y > lo && y <= hi) crossed.push(s); }
+    if (tip.y < prevTip.y) crossed.reverse();
+    crossed.forEach((s, k) => { pluck(s, state.chord.notes[s], vel, k * 0.012); flashStr[s] = now; });
+    if (crossed.length) pulseTag();
+  }
+  prevTip = { x: tip.x, y: tip.y }; prevT = now;
+}
+
 let lastVideoTime = -1;
-let candKey = null, candCount = 0, confirmedKey = null, currentChord = null;
-let prevY = null, prevT = 0, vy = 0, lastStrumT = 0, lastDir = null, handMode = "one";
-
-const thumbEl = document.getElementById("thumbSens");
-// 슬라이더 0(둔감)~1(민감) → 기준값 0.85~0.4
-thumbEl.addEventListener("input", () => { thumbK = 0.85 - Number(thumbEl.value) * 0.45; });
-
 function loop() {
+  const now = performance.now();
   if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
     lastVideoTime = video.currentTime;
-    const now = performance.now();
     const res = landmarker.detectForVideo(video, now);
-    // 양손이면 원본 프레임에서 x가 큰 손(거울 화면의 왼쪽 = 사용자 왼손)이 코드, 다른 손이 스트럼
-    const hands = [...(res.landmarks || [])].sort((a, b) => b[0].x - a[0].x);
-    const chordHand = hands[0];
-    const strumHand = hands[1] || hands[0];
-    const mode = hands.length >= 2 ? "two" : "one";
-    if (mode !== handMode) { handMode = mode; prevY = null; vy = 0; }
-    draw(hands);
-    if (chordHand) handleHand(chordHand, now, strumHand); else lostHand();
+    const { chordHand, playHand } = assignHands(res);
+    handsActive = !!chordHand;
+    if (chordHand) handleChordHand(chordHand, !playHand);
+    else {
+      fingerEls.forEach((f) => f.classList.remove("on"));
+      history.length = 0; confirmedKey = null; tag.hidden = true;
+    }
+    if (playHand) handlePlayHand(playHand, now);
+    else {
+      prevTip = null;
+      if (state.inst === "pad") setPad(chordHand && confirmedKey && confirmedKey !== FIST ? 0.5 : 0, 2200);
+    }
+    draw(res, chordHand, playHand, now);
   }
   requestAnimationFrame(loop);
 }
 
-function handleHand(lm, now, strumLm = lm) {
-  const { bits, key } = classify(lm, canvas.width, canvas.height);
-  bits.forEach((b, i) => fingerEls[i].classList.toggle("on", b));
+function draw(res, chordHand, playHand, now) {
+  const W = canvas.width, H = canvas.height;
+  g2d.clearRect(0, 0, W, H);
 
-  if (key === candKey) candCount++; else { candKey = key; candCount = 1; }
-  if (candCount >= STABLE_FRAMES && key !== confirmedKey) {
-    confirmedKey = key;
-    const g = BY_KEY[key];
-    if (!g) {
-      gestNow.textContent = "등록되지 않은 손 모양";
-    } else if (!g.chord) {
-      currentChord = null; stopVoices(0.06); showMute();
-    } else {
-      currentChord = g.chord; showChord(g.chord, g);
-      if (autoEl.checked) { strum(g.chord, "down"); lastStrumT = now; lastDir = "down"; }
+  // 기타 줄 (오른손이 있을 때)
+  if (state.inst === "guitar" && playHand) {
+    for (let s = 0; s < 6; s++) {
+      const y = strY(s) * H, hot = now - flashStr[s] < 160;
+      g2d.strokeStyle = hot ? "rgba(255,211,107,.95)" : "rgba(255,255,255,.28)";
+      g2d.lineWidth = (hot ? 3 : 1.4) + (5 - s) * 0.35;
+      g2d.beginPath(); g2d.moveTo(0, y); g2d.lineTo(W, y); g2d.stroke();
     }
   }
 
-  // 흔들기 스트럼: 스트럼 손 손바닥 중심(9번)의 세로 속도. 양손 모드는 더 작은 움직임에도 반응
-  const y = strumLm[9].y;
-  const threshold = handMode === "two" ? 0.9 : 1.4;
-  const dt = (now - prevT) / 1000;
-  if (prevY !== null && dt > 0 && dt < 0.12) {
-    const inst = (y - prevY) / dt;
-    vy = 0.55 * inst + 0.45 * vy;
-    const dir = vy > 0 ? "down" : "up";
-    const since = now - lastStrumT;
-    if (shakeEl.checked && currentChord && Math.abs(vy) > threshold && since > 150 && (dir !== lastDir || since > 380)) {
-      strum(currentChord, dir); lastStrumT = now; lastDir = dir;
-    }
-  } else vy = 0;
-  prevY = y; prevT = now;
-}
-
-function lostHand() {
-  fingerEls.forEach((f) => f.classList.remove("on"));
-  candKey = null; candCount = 0; confirmedKey = null; prevY = null;
-  gestNow.textContent = "손을 보여주세요";
-}
-
-function draw(hands) {
-  g2d.clearRect(0, 0, canvas.width, canvas.height);
-  const W = canvas.width, H = canvas.height;
-  const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#e3a254";
-  hands.forEach((lm, h) => {
-    const isStrum = hands.length >= 2 && h === 1;
-    g2d.lineWidth = Math.max(2, W / 260);
-    g2d.strokeStyle = isStrum ? "rgba(140,220,170,.85)" : "rgba(255,255,255,.85)";
+  // 파형
+  if (analyser) {
+    analyser.getFloatTimeDomainData(waveBuf);
+    g2d.strokeStyle = "rgba(111,227,255,.85)";
+    g2d.shadowColor = "rgba(111,227,255,.8)"; g2d.shadowBlur = 12;
+    g2d.lineWidth = Math.max(2, W / 400);
     g2d.beginPath();
-    for (const [a, b] of LINKS) { g2d.moveTo(lm[a].x * W, lm[a].y * H); g2d.lineTo(lm[b].x * W, lm[b].y * H); }
+    const step = waveBuf.length / W;
+    for (let x = 0; x < W; x += 3) {
+      const v = waveBuf[Math.floor(x * step)] || 0;
+      const y = H * 0.82 + v * H * 0.35;
+      x === 0 ? g2d.moveTo(x, y) : g2d.lineTo(x, y);
+    }
     g2d.stroke();
-    lm.forEach((p, i) => {
-      g2d.beginPath();
-      g2d.fillStyle = TIPS.includes(i) && !isStrum ? accent : g2d.strokeStyle;
-      g2d.arc(p.x * W, p.y * H, TIPS.includes(i) ? W / 90 : W / 200, 0, Math.PI * 2);
-      g2d.fill();
-    });
-  });
+    g2d.shadowBlur = 0;
+  }
+
+  // 손: 뼈대를 따라 촘촘한 점
+  for (const h of [chordHand, playHand]) {
+    if (!h) continue;
+    const lm = h.lm;
+    const col = h === chordHand ? "255,240,220" : "150,235,190";
+    const gap = Math.max(6, W / 140);
+    g2d.fillStyle = `rgba(${col},.75)`;
+    for (const [a, b] of BONES) {
+      const ax = lm[a].x * W, ay = lm[a].y * H, bx = lm[b].x * W, by = lm[b].y * H;
+      const n = Math.max(1, Math.floor(Math.hypot(bx - ax, by - ay) / gap));
+      for (let i = 0; i <= n; i++) {
+        g2d.beginPath();
+        g2d.arc(ax + (bx - ax) * i / n, ay + (by - ay) * i / n, Math.max(1.2, W / 600), 0, Math.PI * 2);
+        g2d.fill();
+      }
+    }
+    g2d.fillStyle = `rgba(${col},1)`;
+    for (const i of [4, 8, 12, 16, 20]) {
+      g2d.beginPath(); g2d.arc(lm[i].x * W, lm[i].y * H, Math.max(3, W / 200), 0, Math.PI * 2); g2d.fill();
+    }
+  }
 }
 </script>
 </body>
